@@ -8,7 +8,7 @@ namespace Application
         {
             List<Area> AreaFromDB = new()
             {
-                new Area { AreaName = "101-104", CargoOnArea = 5300000 },
+                new Area { AreaName = "101-104", CargoOnArea = 53000 },
                 new Area { AreaName = "105", CargoOnArea = 5000},
                 new Area { AreaName = "201-202", CargoOnArea = 8000},
                 new Area { AreaName = "203-205", CargoOnArea = 15000},

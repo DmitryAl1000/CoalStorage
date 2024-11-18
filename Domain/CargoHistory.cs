@@ -9,10 +9,10 @@ namespace Domain
     public class CargoHistory
     {
         public DateTime DateTime { get; set; }
-        public string AreaId { get; set; } = string.Empty;
+        public string AreaName { get; set; } = string.Empty;
         public double CargoOnArea { get; set; } 
 
 
-        //public Area? Area { get; set; }
+     //   public Area Area { get; set; }
     }
 }

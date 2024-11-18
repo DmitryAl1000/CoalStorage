@@ -1,78 +1,172 @@
 ﻿@page "/"
 @rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore;
 @inject CoalStorageMsSqlDbContext dbContext
+@inject NotificationService NotificationService
 
 <PageTitle>Home</PageTitle>
 
-@if (CoalStorageSlots.Count != 0)
+
+
+
+<h2>Груз на площадках</h2>
+
+@if (_selectedArea is not null)
 {
-    @foreach (var item in CoalStorageSlots)
+    @foreach (var item in _selectedArea)
     {
-        <p>Слот ID: @item.SlotNumber</p>
-        <p>Название зоны: @item.AreaId</p>
-        <p>Номер склада: @item.StorageId</p>
-        <br />
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Center" Wrap="FlexWrap.Wrap" Gap="1rem" class="rz-p-sm-12">
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Выбран: @item.AreaName</RadzenText>
+            <RadzenFormField Text="Новое значение для груза на площадке">
+                <RadzenNumeric @bind-Value="@_newAreaCargoCount" />
+            </RadzenFormField>
+            <RadzenButton Click=@(args => ChangeButtonClick()) Text="Изменить значение" ButtonStyle="ButtonStyle.Success" />
+        </RadzenStack>
     }
+}
+else
+{
+    <p>Загрузка</p>
+}
+
+
+@if (AreasCoalStorage is not null)
+{
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                    Data="@AreasCoalStorage" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value=@_selectedArea>
+        <Columns>
+            <RadzenDataGridColumn Property="@nameof(Area.AreaName)" Filterable="true" Title="Номер площадки" Frozen="true" Width="200px" TextAlign="TextAlign.Center" />
+
+            <RadzenDataGridColumn Property="@nameof(Area.CargoOnArea)" Title="Груз на площадке(т)" TextAlign="TextAlign.Center" Frozen="true" Width="200px" />
+            @*        <RadzenDataGridColumn Property="@nameof(Employee.Title)" Title="Job Title" Width="200px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.TitleOfCourtesy)" Title="Title" Width="120px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.BirthDate)" Title="Birth Date" FormatString="{0:d}" Width="160px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.HireDate)" Title="Hire Date" FormatString="{0:d}" Width="160px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.Address)" Title="Address" Width="200px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.City)" Title="City" Width="160px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.Region)" Title="Region" Width="160px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.PostalCode)" Title="Postal Code" Width="160px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.Country)" Title="Country" Width="160px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.HomePhone)" Title="Home Phone" Width="160px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.Extension)" Title="Extension" Width="160px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.Notes)" Title="Notes" Width="300px" /> *@
+        </Columns>
+    </RadzenDataGrid>
 }
 else
 {
     <p>Загрузка...</p>
 }
 
-
-
-<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-                Data="@employees" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value=@selectedEmployees>
-    <Columns>
-        <RadzenDataGridColumn Property="@nameof(Employee.EmployeeID)" Filterable="false" Title="ID" Frozen="true" Width="50px" TextAlign="TextAlign.Center" />
-        <RadzenDataGridColumn Property="@nameof(Employee.FirstName)" Title="First Name" Frozen="true" Width="160px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.LastName)" Title="Last Name" Width="160px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.Address)" Title="Address" Width="200px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.City)" Title="City" Width="160px" />
-    </Columns>
-</RadzenDataGrid>
-
-<p>Сейчас выбран @selectedEmployees.FirstOrDefault().FirstName</p>
-
 @code {
-    IEnumerable<Employee> employees;
-    IList<Employee> selectedEmployees;
+    const string NOOBJECT_MESSEGE = "Данные не были изменены, объект отсутствует";
+    const string CARGO_NOTCHANGED = "Груз не изменён";
 
-    public List<Slot> CoalStorageSlots { get; set; }
+    public List<Area>? AreasCoalStorage { get; set; }
 
-    public void DlFromdbAsync()
-    {
-        using (dbContext)
-        { // вывод пользователей
+    IList<Area>? _selectedArea;
+    double _newAreaCargoCount;
 
-            CoalStorageSlots = new();
-            CoalStorageSlots = dbContext.Slots.ToList();
-        }
-    }
+    // public void DlFromdb()
+    // {
+    //     using (dbContext)
+    //     {
 
+    //         AreasCoalStorage = new();
+    //         AreasCoalStorage = dbContext.Areas.ToList();
+    //     }
+    // }
+
+    // protected override void OnInitialized()
+    // {
+
+    //     _selectedArea = new List<Area>() { AreasCoalStorage?.FirstOrDefault() };
+    // }
 
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        DlFromdbAsync();
-        employees = new List<Employee>()
-        {
-            new Employee() {EmployeeID = 1, FirstName = "Bob", LastName = "Dillan", Address = "Zver str", City ="SPB" },
-            new Employee() {EmployeeID = 2, FirstName = "Tob", LastName = "Rolon", Address = "Units str", City ="Moscow" },
-            new Employee() {EmployeeID = 3, FirstName = "Sarah", LastName = "jain", Address = "Colonnel str", City ="London" }
-        };
 
-        selectedEmployees = new List<Employee>() { employees.FirstOrDefault() };
+        AreasCoalStorage = dbContext.Areas.ToList();
+        _selectedArea = new List<Area>() { AreasCoalStorage?.FirstOrDefault() };
     }
 
-    class Employee
+
+    private async Task ChangeButtonClick()
     {
-        public int EmployeeID { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string Address { get; set; }
-        public string City { get; set; }
+
+        if (_selectedArea is null
+         || AreasCoalStorage is null
+        || AreasCoalStorage.Count == 0)
+        {
+            ShowMessege(NOOBJECT_MESSEGE);
+            return;
+        }
+
+        string message = CARGO_NOTCHANGED;
+        Area? selectedArea = _selectedArea.FirstOrDefault();
+
+        foreach (var item in AreasCoalStorage)
+        {
+            if (selectedArea.AreaName == item.AreaName
+              && _newAreaCargoCount != item.CargoOnArea)
+            {
+                message = $"Груз на площадке {selectedArea.AreaName} изменен с {item.CargoOnArea} на {_newAreaCargoCount}\n";
+                item.CargoOnArea = _newAreaCargoCount;
+                await AddToCargoHistoryAsync(item);
+            }
+        }
+
+        ShowMessege(message);
+    }
+
+
+    private async Task AddToCargoHistoryAfterAsync()
+    {
+        Area? selectedArea = _selectedArea.FirstOrDefault();
+        await Task.Run(() =>
+         AddToCargoHistory(selectedArea)
+        );
+    }
+
+
+    private async Task AddToCargoHistoryAsync(Area area)
+    {
+        await Task.Run(() =>
+         AddToCargoHistory(area)
+        );
+    }
+
+    private void AddToCargoHistory(Area area)
+    {
+        dbContext.CargoHistory.Add(new CargoHistory()
+            {
+                DateTime = DateTime.Now,
+                AreaName = area.AreaName,
+                CargoOnArea = area.CargoOnArea
+            });
+        string message = $"Операция изменения значения зруза на площадке {area.AreaName} на {area.CargoOnArea} добавлена в историю";
+        ShowMessege(message);
+    }
+
+
+
+
+    private void ChangeCargoOnArea(Area selectedArea, Area edditingArea)
+    {
+
+    }
+
+
+
+    private void ShowMessege(string massage)
+    {
+        NotificationService.Notify(new NotificationMessage 
+            { Severity = NotificationSeverity.Info, 
+                Summary = "Button Clicked", 
+                Detail = massage
+            });
     }
 
 }
