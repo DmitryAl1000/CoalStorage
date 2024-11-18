@@ -1,0 +1,239 @@
+﻿@page "/StorageRedactor"
+@using Microsoft.EntityFrameworkCore
+@rendermode RenderMode.InteractiveServer
+@inject NotificationService NotificationService
+
+
+<h2>Склад 1</h2>
+
+
+
+<RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.Wrap">
+    <input type="number" @bind-value="@zoneNumber" />
+    <RadzenButton Click=@(args => OnClickCreateButton("пикет создан")) Text="Создать пикет в N зону" ButtonStyle="ButtonStyle.Success" />
+
+     <br/>
+    <RadzenButton Click=@(args => OnClickCreateZone("пикет создан")) Text="Создать пустую зону" ButtonStyle="ButtonStyle.Success" />
+</RadzenStack>
+
+@if (DropZones is null)
+{
+    <p>Загрузка...</p>
+}
+else
+{
+    <RadzenRow class="rz-text-align-center rz-border-info-light" Gap="2rem">
+
+        @foreach (var zone in DropZones)
+        {
+            <RadzenColumn class="rz-background-color-info-lighter rz-color-on-info-lighter rz-p-5">
+                @zone.Name
+                @foreach (var pick in zone.pickets)
+                {
+                    <p> - pick</p>
+                }
+            </RadzenColumn>
+        }
+    </RadzenRow>
+}
+
+
+
+
+
+<RadzenDropZoneContainer TItem="MyTask" Data="data"
+                         ItemSelector="@ItemSelector"
+                         ItemRender="@OnItemRender"
+                         CanDrop="@CanDrop"
+                         Drop="@OnDrop">
+    <ChildContent>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap" class="rz-p-12">
+
+            @foreach (var item in DropZones)
+            {
+                <RadzenDropZone Value="item.Status" class="rz-display-flex rz-flex-column rz-background-color-warning-lighter rz-border-warning-light rz-border-radius-2 rz-p-4" Style="flex: 1; gap: 1rem;">
+                    <RadzenText Text=@item.Name TextStyle="TextStyle.Subtitle2" />
+                </RadzenDropZone>
+            }
+
+
+            <RadzenDropZone Value="Status.Worked" class="rz-display-flex rz-flex-column rz-background-color-warning-lighter rz-border-warning-light rz-border-radius-2 rz-p-4" Style="flex: 1; gap: 1rem;">
+                <RadzenText Text="Не начат" TextStyle="TextStyle.Subtitle2" />
+            </RadzenDropZone>
+
+            <RadzenDropZone Value="Status.Started" class="rz-display-flex rz-flex-column rz-background-color-info-lighter rz-border-info-light rz-border-radius-2 rz-p-4" Style="flex: 1; gap: 1rem;">
+                <RadzenText Text="Started" TextStyle="TextStyle.Subtitle2" />
+            </RadzenDropZone>
+            <RadzenDropZone Value="Status.Completed" class="rz-display-flex rz-flex-column rz-background-color-success-lighter rz-border-success-light rz-border-radius-2 rz-p-4" Style="flex: 1; gap: 1rem;">
+                <RadzenText Text="Completed" TextStyle="TextStyle.Subtitle2" />
+            </RadzenDropZone>
+        </RadzenStack>
+        <RadzenStack Orientation="Orientation.Vertical" Gap="0rem" Wrap="FlexWrap.Wrap" class="rz-p-12">
+            <RadzenDropZone Value="Status.Deleted" class="rz-display-flex rz-flex-column rz-background-color-danger-lighter rz-border-danger-light rz-border-radius-2 rz-p-4" Style="flex: 1; gap: 1rem;">
+                <RadzenText Text="перетащите сюда для удаления пикета" TextStyle="TextStyle.Subtitle2" />
+            </RadzenDropZone>
+        </RadzenStack>
+
+    </ChildContent>
+    <Template>
+        <strong>@context.Name</strong>
+    </Template>
+</RadzenDropZoneContainer>
+
+<style>
+    .rz-can-drop {
+        background-color: var(--rz-background-color-primary);
+    }
+</style>
+
+@code {
+    // Filter items by zone value
+    Func<MyTask, RadzenDropZone<MyTask>, bool> ItemSelector = (item, zone) => item.Status == (Status)zone.Value && item.Status != Status.Deleted;
+
+    Func<RadzenDropZoneItemEventArgs<MyTask>, bool> CanDrop = request =>
+    {
+        // Allow item drop only in the same zone, in "Deleted" zone or in the next/previous zone.
+        return request.FromZone == request.ToZone || (Status)request.ToZone.Value == Status.Deleted ||
+            Math.Abs((int)request.Item.Status - (int)request.ToZone.Value) == 1;
+    };
+
+
+
+
+
+
+    private void OnClickCreateButton(string text)
+    {
+        NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Info,
+                Summary = "Пикет с номером:",
+                Detail = text
+            });
+
+
+        foreach (var item in DropZones)
+        {
+            if (zoneNumber == item.Id)
+            {
+                item.pickets.Add("Пикет " + Picked);
+                Picked++;
+            }
+        }
+    }
+
+    
+    public int zoneNumber { get; set; }
+    public int ZoneNum { get; set; } = 1;
+    public int Picked { get; set; } = 1;
+    List<DropZone> DropZones;
+
+    private void OnClickCreateZone(string text)
+    {
+        NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Info,
+                Summary = "Создана новая зона:",
+                Detail = text
+            });
+
+        ZoneNum++;
+        DropZones.Add(new DropZone()
+            {
+                Id = ZoneNum,
+                Name = $"Зона {ZoneNum}",
+            Status = Status.Worked
+            });
+
+    }
+
+
+
+    void OnItemRender(RadzenDropZoneItemRenderEventArgs<MyTask> args)
+    {
+        // Customize item appearance
+        if (args.Item.Name == "Task2")
+        {
+            args.Attributes["draggable"] = "false";
+            args.Attributes["style"] = "cursor:not-allowed";
+            args.Attributes["class"] = "rz-card rz-variant-flat rz-background-color-primary-lighter rz-color-on-primary-lighter";
+        }
+        else
+        {
+            args.Attributes["class"] = "rz-card rz-variant-filled rz-background-color-primary-light rz-color-on-primary-light";
+        }
+
+        // Do not render item if deleted
+        args.Visible = args.Item.Status != Status.Deleted;
+    }
+
+    void OnDrop(RadzenDropZoneItemEventArgs<MyTask> args)
+    {
+        if (args.FromZone != args.ToZone)
+        {
+            // update item zone
+            args.Item.ZoneId = (int)args.ToZone.Value;
+        }
+
+        if (args.ToItem != null && args.ToItem != args.Item)
+        {
+            // reorder items in same zone or place the item at specific index in new zone
+            data.Remove(args.Item);
+            data.Insert(data.IndexOf(args.ToItem), args.Item);
+        }
+    }
+
+    IList<MyTask> data;
+
+    protected override void OnInitialized()
+    {
+        data = new List<MyTask>();
+        data.Add(new MyTask()
+            {
+                Id = 202,
+                Name = $"NewTask",
+                Status = Status.Worked
+            });
+
+        DropZones = new();
+        DropZones.Add(new DropZone()
+            {
+                Id = 1,
+                Name = "Первая",
+                Status = Status.Worked
+            });
+        DropZones.Add(new DropZone()
+            {
+                Id = 2,
+                Name = "вторая",
+                Status = Status.Worked
+            });
+
+    }
+
+    public class DropZone
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public Status Status { get; set; } = Status.Worked;
+        public List<string> pickets { get; set; } = new();
+
+    }
+
+
+    public class MyTask
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int ZoneId { get; set; } = 0;
+        public Status Status { get; set; } = Status.Worked;
+    }
+
+    public enum Status
+    {
+        Worked,
+        Started,
+        Completed,
+        Deleted
+    }
+}

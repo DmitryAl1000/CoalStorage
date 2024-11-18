@@ -1,0 +1,79 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject CoalStorageMsSqlDbContext dbContext
+
+<PageTitle>Home</PageTitle>
+
+@if (CoalStorageSlots.Count != 0)
+{
+    @foreach (var item in CoalStorageSlots)
+    {
+        <p>Слот ID: @item.SlotNumber</p>
+        <p>Название зоны: @item.AreaId</p>
+        <p>Номер склада: @item.StorageId</p>
+        <br />
+    }
+}
+else
+{
+    <p>Загрузка...</p>
+}
+
+
+
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                Data="@employees" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value=@selectedEmployees>
+    <Columns>
+        <RadzenDataGridColumn Property="@nameof(Employee.EmployeeID)" Filterable="false" Title="ID" Frozen="true" Width="50px" TextAlign="TextAlign.Center" />
+        <RadzenDataGridColumn Property="@nameof(Employee.FirstName)" Title="First Name" Frozen="true" Width="160px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.LastName)" Title="Last Name" Width="160px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.Address)" Title="Address" Width="200px" />
+        <RadzenDataGridColumn Property="@nameof(Employee.City)" Title="City" Width="160px" />
+    </Columns>
+</RadzenDataGrid>
+
+<p>Сейчас выбран @selectedEmployees.FirstOrDefault().FirstName</p>
+
+@code {
+    IEnumerable<Employee> employees;
+    IList<Employee> selectedEmployees;
+
+    public List<Slot> CoalStorageSlots { get; set; }
+
+    public void DlFromdbAsync()
+    {
+        using (dbContext)
+        { // вывод пользователей
+
+            CoalStorageSlots = new();
+            CoalStorageSlots = dbContext.Slots.ToList();
+        }
+    }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        DlFromdbAsync();
+        employees = new List<Employee>()
+        {
+            new Employee() {EmployeeID = 1, FirstName = "Bob", LastName = "Dillan", Address = "Zver str", City ="SPB" },
+            new Employee() {EmployeeID = 2, FirstName = "Tob", LastName = "Rolon", Address = "Units str", City ="Moscow" },
+            new Employee() {EmployeeID = 3, FirstName = "Sarah", LastName = "jain", Address = "Colonnel str", City ="London" }
+        };
+
+        selectedEmployees = new List<Employee>() { employees.FirstOrDefault() };
+    }
+
+    class Employee
+    {
+        public int EmployeeID { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Address { get; set; }
+        public string City { get; set; }
+    }
+
+}
+

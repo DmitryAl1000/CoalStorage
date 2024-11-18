@@ -1,0 +1,6 @@
+﻿@page "/counter"
+
+@inject DialogService DialogService
+<RadzenButton Text="Test Popup" Click=@(args => DialogService.Confirm("Confirm Action?", "Test Popup", new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" })) />
+@code {
+}

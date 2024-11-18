@@ -1,0 +1,20 @@
+﻿@inherits LayoutComponentBase
+
+<RadzenComponents @rendermode="InteractiveServer" />
+<RadzenLayout>
+
+    <Menu/>
+    <RadzenBody>
+            @Body
+    </RadzenBody>
+    <RadzenFooter class="rz-background-color-base-900">
+        <FooterContent/>
+    </RadzenFooter>
+</RadzenLayout>
+
+
+@code {
+    bool sidebarExpanded = true;
+}
+
+
