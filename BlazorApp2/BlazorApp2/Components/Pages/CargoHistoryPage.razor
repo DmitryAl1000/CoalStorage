@@ -1,0 +1,38 @@
+﻿@page "/CargoHistory"
+@rendermode InteractiveServer
+@inject CoalStorageMsSqlDbContext dbContext
+@inject NotificationService NotificationService
+
+
+
+<h3>История движения грузов</h3>
+
+@if (CargoHistories is not null)
+{
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                    Data="@CargoHistories" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single">
+        <Columns>
+            <RadzenDataGridColumn Property="@nameof(CargoHistory.DateTime)" Filterable="true" Title="Дата и время" Frozen="true" Width="200px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn Property="@nameof(CargoHistory.AreaName)" Filterable="true" Title="Номер площадки" Frozen="true" Width="200px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn Property="@nameof(CargoHistory.CargoOnArea)" Title="Новое значение груза на площадке(т)" TextAlign="TextAlign.Center" Frozen="true" Width="200px" />
+        </Columns>
+    </RadzenDataGrid>
+}
+else
+{
+    <p>Загрузка...</p>
+}
+
+
+
+@code {
+
+    public List<CargoHistory>? CargoHistories { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        CargoHistories = dbContext.CargoHistory.ToList();
+    }
+}

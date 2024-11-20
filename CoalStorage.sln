@@ -21,7 +21,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Domain", "Domain\Domain.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoalStorageMsSqlDbContext", "CoalStorageMsSqlDbContext\CoalStorageMsSqlDbContext.csproj", "{07AE197D-67CD-469C-AF9C-2DC8BB77ACF6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "Application\Application.csproj", "{45067400-4084-44DE-9E10-3A3CDC2B5680}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Application", "Application\Application.csproj", "{45067400-4084-44DE-9E10-3A3CDC2B5680}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

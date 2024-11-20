@@ -1,0 +1,296 @@
+﻿@page "/StorageRedactor"
+@rendermode RenderMode.InteractiveServer
+@inject NotificationService NotificationService
+@inject CoalStorageMsSqlDbContext dbContext
+@inject DialogService DialogService
+
+<h2>Схема складов. Распределение площадок и Пикетов</h2>
+
+
+@* 
+=============================
+Схема управления таблицей
+=============================
+*@
+@if (SelectedSlot is not null)
+{
+    @foreach (var item in SelectedSlot)
+    {
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="rz-p-4 rz-mb-6 rz-border-radius-1" Style="border: var(--rz-grid-cell-border);">
+        <RadzenRow class="rz-text-align-center" Gap="1rem">
+            <RadzenColumn Size="3" class="rz-background-color-info-lighter rz-color-on-info-lighter rz-p-5">
+                <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Выбран: @item.SlotName пикет на площадке: @item.AreaName</RadzenText>
+                <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Сейчас на площадке: @CargoOnArea(@item.AreaName) тонн груза</RadzenText>
+            </RadzenColumn>
+            <RadzenColumn>
+                <RadzenRow class="rz-p-5" >
+                    <RadzenButton Click=@(args => AddSelectedSlotToAreaButton()) Icon="add" Text="Переместить слот на площадку" ButtonStyle="ButtonStyle.Success" />
+                    <RadzenDropDown @bind-Value=@_selectedAreaDropDownList Data=@AreasNames Style="width: 100%; max-width: 150px;" Name="DropDownBindValue" />
+                </RadzenRow>
+                <RadzenRow class="rz-p-5">
+                    <RadzenButton disabled="@_deleteButtonDisabled" Click=@(args => DeleteSelectedSlotFromAreaButton()) Text="Исключить слот из площадки" ButtonStyle="ButtonStyle.Danger" />
+                        @if(false)
+                        {
+                            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3"> Невозможно удалить площадки на которой </RadzenText>
+                        }
+                    </RadzenRow>
+                
+            </RadzenColumn>
+        </RadzenRow>
+        </RadzenStack>
+    }
+}
+else
+{
+    <p>Загрузка</p>
+}
+@*
+=============================
+Схема складов. Распределение площадок и Пикетов
+=============================
+*@
+@if (Slots is not null && Areas is not null)
+{
+
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="20" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                    Data="@Slots" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value=@SelectedSlot >
+        <Columns>
+            <RadzenDataGridColumn Property="@nameof(Slot.StorageId)" Title="Id Склада" TextAlign="TextAlign.Center" Frozen="true" Width="100px" />
+            <RadzenDataGridColumn Property="@nameof(Slot.SlotName)" Filterable="true" Title="Номер пикета" Frozen="true" Width="200px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn Property="@nameof(Slot.AreaName)" Title="Номер площадки" TextAlign="TextAlign.Center" Frozen="true" Width="200px" />
+        </Columns>
+    </RadzenDataGrid>
+}
+else
+{
+    <p>Загрузка...</p>
+}
+
+
+
+
+@code {
+    public List<Slot>? Slots { get; set; }
+    public List<Area>? Areas { get; set; }
+
+    List<string>? AreasNames { get; set; }
+    string? _selectedAreaDropDownList = string.Empty;
+    IList<Slot>? _selectedSlot;
+    bool _deleteButtonDisabled = false;
+
+    //при изменениях выделенного поля меняем доступность элементов
+    private IList<Slot>? SelectedSlot
+    {
+        get { return _selectedSlot; }
+        set 
+        { 
+            _selectedSlot = value;
+            ChangeSelectedArea();
+        }
+    }
+    
+    private async Task SetAreasNamesAsync()
+    {
+        await Task.Run(() => SetAreasNames());
+    }
+    private void SetAreasNames()
+    {
+        AreasNames = new();
+        foreach (var area in Areas)
+        AreasNames.Add(area.AreaName);
+    }
+
+    private double CargoOnArea(string areaName)
+    {
+        foreach (var area in Areas)
+        {
+            if (area.AreaName == areaName)
+            {
+                return area.CargoOnArea;
+            }
+        }
+        return 0;
+    }
+
+
+    private async Task SetValuesAfterSelected()
+    {
+        await Task.Run(() =>  ChangeSelectedArea());
+    }
+
+    void ChangeSelectedArea()
+    {
+        var selectedslot = SelectedSlot.FirstOrDefault();
+        if (selectedslot.SlotName == selectedslot.AreaName)
+        {
+            _deleteButtonDisabled = true;
+        }
+        else
+        {
+            _deleteButtonDisabled = false;
+        }
+    }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        Areas = dbContext.Areas.ToList();
+        Slots = dbContext.Slots.ToList();
+        AreasNames = new();
+        SetAreasNames();
+        _selectedAreaDropDownList = AreasNames.FirstOrDefault();
+        SelectedSlot = new List<Slot>() { Slots?.FirstOrDefault() };
+
+    }
+
+    //Удаление пикета из площадки
+    private async Task DeleteSelectedSlotFromAreaButton()
+    {
+        var selectedSlot = SelectedSlot.FirstOrDefault();
+        string errormEssege = string.Empty;
+
+
+        double cargoOnArea = CargoOnArea(selectedSlot.AreaName);
+        if (cargoOnArea != 0)
+        {
+            await ShowInlineDialog($"На текущей площадке {cargoOnArea} тонн груза,\n удалить его и разбить площадку ?");
+            return;
+        }
+        else
+        {
+            await ExcludeSelectedSlotAsync();
+        }
+        
+    }
+
+
+    //Диалог о невозможности операции
+    async Task ShowAlertDialog(string text)
+    {
+        var result = await DialogService.OpenAsync("Внимание!", ds =>
+    @<RadzenStack Gap="1.5rem">
+        <p> <b>@text</b></p>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => ds.Close(true)" Style="width: 80px;" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+        );
+    }
+
+    //Диалог на исключение пикета из площадок
+    async Task ShowInlineDialog(string text)
+    {
+        var result = await DialogService.OpenAsync("Внимание!", ds =>
+    @<RadzenStack Gap="1.5rem">
+        <p> <b>@text</b></p>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Удалить груз и исключить пикет" Click="() => DeleteCargoAndDeleteSlot(ds)" />
+                <RadzenButton Click="() => ds.Close(false)" Icon="dangerous" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+    );
+    }
+
+
+    async Task DeleteCargoAndDeleteSlot(DialogService ds)
+    {
+        await Task.Run(() =>ds.Close(true));
+        await Task.Run(() => DeleteCargoAndDeleteSlot());
+
+    }
+    async Task ExcludeSelectedSlotAsync()
+    {
+        await Task.Run(() => ExcludeSelectedSlot());
+
+    }
+
+    //Обнуляем данные на сладе с занесением в историю
+    //Исключаем пикет из площадки
+    void DeleteCargoAndDeleteSlot()
+    {
+        DeleteCargoOnSelectedArea();
+        ExcludeSelectedSlot();
+
+
+        dbContext.SaveChanges();
+
+        
+    }
+
+    private void ExcludeSelectedSlot()
+    {
+        var selectedslot = SelectedSlot.FirstOrDefault();
+        Slots.ExcudeSlotFromArea(selectedslot);
+
+       
+    }
+
+
+
+    void DeleteCargoOnSelectedArea()
+    {
+        var selectedslot = SelectedSlot.FirstOrDefault();
+        foreach (var area in Areas)
+        {
+            if (area.AreaName == selectedslot.AreaName)
+            {
+                area.CargoOnArea = 0;
+                AddToCargoHistory(area);
+            }
+        }
+    }
+
+    private void AddToCargoHistory(Area area)
+    {
+        dbContext.CargoHistory.Add(new CargoHistory()
+            {
+                DateTime = DateTime.Now,
+                AreaName = area.AreaName,
+                CargoOnArea = area.CargoOnArea
+            });
+        string message = $"Операция изменения значения зруза на площадке {area.AreaName} на {area.CargoOnArea} добавлена в историю";
+        ShowMessege(message);
+    }
+
+    ///Показать всплывающее сообщение
+    private void ShowMessege(string massage)
+    {
+        NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Info,
+                Summary = "Button Clicked",
+                Detail = massage
+            });
+    }
+
+
+    private async Task CreateNewAreaButton()
+    {
+
+    }
+
+    private async Task AddSelectedSlotToAreaButton()
+    {
+
+    }
+
+
+    private void ShowNotificationMessege(string massage)
+    {
+        NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Info,
+                Summary = "Button Clicked",
+                Detail = massage
+            });
+    }
+
+
+}

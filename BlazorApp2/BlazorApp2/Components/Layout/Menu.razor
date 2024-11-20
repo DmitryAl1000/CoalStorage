@@ -1,7 +1,12 @@
 ﻿@rendermode RenderMode.InteractiveServer
 <RadzenComponents @rendermode="InteractiveServer" />
 
-@* часть хедера тут, потому как открывает закрывает меню *@
+@*
+==================================================================================
+========   Часть хедера тут, потому как открывает закрывает меню   ===============
+==================================================================================
+*@
+
 <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap" class="rz-p-6">
     <RadzenHeader>
         <RadzenStack class="rz-background-color-success" Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
@@ -10,7 +15,12 @@
         </RadzenStack>
     </RadzenHeader>
 </RadzenStack>
-@* Меню *@
+
+@* 
+==================================================================================
+===================================   Меню   =====================================
+==================================================================================
+*@
 <RadzenSidebar Responsive="false" Style="width: max-content">
     <RadzenPanelMenu DisplayStyle="@(sidebarExpanded ? MenuItemDisplayStyle.IconAndText : MenuItemDisplayStyle.Icon)" ShowArrow="false">
         <RadzenPanelMenuItem Text="Главная" Icon="assignment" Path="/">
@@ -19,13 +29,13 @@
         </RadzenPanelMenuItem>
         <RadzenPanelMenuItem Text="История" Icon="history" >
             <RadzenPanelMenuItem Text="Состоние склада по датам" Icon="input" Path="/HistoryByDates" />
-            <RadzenPanelMenuItem Text="История редактирования складов" Icon="build" />
-            <RadzenPanelMenuItem Text="История движения грузов " Icon="list" />
+            <RadzenPanelMenuItem Text="История редактирования складов" Icon="build" Path="/StorageAreaHistory" />
+            <RadzenPanelMenuItem Text="История движения грузов " Icon="list" Path="/CargoHistory"/>
         </RadzenPanelMenuItem>
     </RadzenPanelMenu>
 </RadzenSidebar>
 
 
 @code {
-    public bool sidebarExpanded { get; set; } = true;
+    public bool sidebarExpanded { get; set; } = false;
 }

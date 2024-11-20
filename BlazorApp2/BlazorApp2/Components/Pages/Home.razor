@@ -1,6 +1,5 @@
 ﻿@page "/"
 @rendermode InteractiveServer
-@using Microsoft.EntityFrameworkCore;
 @inject CoalStorageMsSqlDbContext dbContext
 @inject NotificationService NotificationService
 
@@ -33,23 +32,11 @@ else
 @if (AreasCoalStorage is not null)
 {
     <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-                    Data="@AreasCoalStorage" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value=@_selectedArea>
+                    Data="@AreasCoalStorage" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value=@SelectedArea>
         <Columns>
             <RadzenDataGridColumn Property="@nameof(Area.AreaName)" Filterable="true" Title="Номер площадки" Frozen="true" Width="200px" TextAlign="TextAlign.Center" />
 
             <RadzenDataGridColumn Property="@nameof(Area.CargoOnArea)" Title="Груз на площадке(т)" TextAlign="TextAlign.Center" Frozen="true" Width="200px" />
-            @*        <RadzenDataGridColumn Property="@nameof(Employee.Title)" Title="Job Title" Width="200px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.TitleOfCourtesy)" Title="Title" Width="120px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.BirthDate)" Title="Birth Date" FormatString="{0:d}" Width="160px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.HireDate)" Title="Hire Date" FormatString="{0:d}" Width="160px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.Address)" Title="Address" Width="200px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.City)" Title="City" Width="160px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.Region)" Title="Region" Width="160px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.PostalCode)" Title="Postal Code" Width="160px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.Country)" Title="Country" Width="160px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.HomePhone)" Title="Home Phone" Width="160px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.Extension)" Title="Extension" Width="160px" />
-        <RadzenDataGridColumn Property="@nameof(Employee.Notes)" Title="Notes" Width="300px" /> *@
         </Columns>
     </RadzenDataGrid>
 }
@@ -64,24 +51,27 @@ else
 
     public List<Area>? AreasCoalStorage { get; set; }
 
-    IList<Area>? _selectedArea;
     double _newAreaCargoCount;
+    IList<Area>? _selectedArea;
 
-    // public void DlFromdb()
-    // {
-    //     using (dbContext)
-    //     {
+    //при изменениях выделенного поля меняем элемент в поле ввода
+    private IList<Area>? SelectedArea
+    {
+        get { return _selectedArea; }
+        set
+        {
+            _selectedArea = value;
+            SetInputCargoField();
+        }
+    }
 
-    //         AreasCoalStorage = new();
-    //         AreasCoalStorage = dbContext.Areas.ToList();
-    //     }
-    // }
+    private void SetInputCargoField()
+    {
+        double cargoOnArea = _selectedArea.FirstOrDefault().CargoOnArea;
+        _newAreaCargoCount = cargoOnArea;
+    }
 
-    // protected override void OnInitialized()
-    // {
 
-    //     _selectedArea = new List<Area>() { AreasCoalStorage?.FirstOrDefault() };
-    // }
 
 
     protected override async Task OnInitializedAsync()
@@ -90,8 +80,8 @@ else
 
         AreasCoalStorage = dbContext.Areas.ToList();
         _selectedArea = new List<Area>() { AreasCoalStorage?.FirstOrDefault() };
+        SetInputCargoField();
     }
-
 
     private async Task ChangeButtonClick()
     {
@@ -147,6 +137,7 @@ else
                 CargoOnArea = area.CargoOnArea
             });
         string message = $"Операция изменения значения зруза на площадке {area.AreaName} на {area.CargoOnArea} добавлена в историю";
+        dbContext.SaveChanges();
         ShowMessege(message);
     }
 
@@ -157,8 +148,6 @@ else
     {
 
     }
-
-
 
     private void ShowMessege(string massage)
     {

@@ -38,7 +38,7 @@ namespace MsSqlDbContext
             modelBuilder.Entity<Slot>(b => b.HasKey(e => e.SlotId));
 
             modelBuilder.Entity<Slot>().Property(x => x.SlotName).IsRequired(true);
-            modelBuilder.Entity<Slot>().Property(x => x.AreaId).IsRequired(true);
+            modelBuilder.Entity<Slot>().Property(x => x.AreaName).IsRequired(true);
             modelBuilder.Entity<Slot>().Property(x => x.StorageId).IsRequired(true);
 
             //  //modelBuilder.Entity<Slot>()

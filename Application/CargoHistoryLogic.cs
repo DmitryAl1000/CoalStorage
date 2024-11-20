@@ -6,7 +6,14 @@ using System.Threading.Tasks;
 
 namespace Application
 {
-    internal class CargoHistoryLogic
+    public class CargoHistoryLogic
     {
+
+
+
+
+
+
+
     }
 }

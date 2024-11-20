@@ -17,8 +17,4 @@
     <PackageReference Include="Radzen.Blazor" Version="5.6.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Components\Новая папка\" />
-  </ItemGroup>
-
 </Project>
