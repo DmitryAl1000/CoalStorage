@@ -31,7 +31,7 @@ else
 
 @if (AreasCoalStorage is not null)
 {
-    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="50" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
                     Data="@AreasCoalStorage" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value=@SelectedArea>
         <Columns>
             <RadzenDataGridColumn Property="@nameof(Area.AreaName)" Filterable="true" Title="Номер площадки" Frozen="true" Width="200px" TextAlign="TextAlign.Center" />
@@ -78,7 +78,7 @@ else
     {
         await base.OnInitializedAsync();
 
-        AreasCoalStorage = dbContext.Areas.ToList();
+        AreasCoalStorage = dbContext.Areas.OrderBy(p => p.AreaName).ToList();
         _selectedArea = new List<Area>() { AreasCoalStorage?.FirstOrDefault() };
         SetInputCargoField();
     }
@@ -90,7 +90,7 @@ else
          || AreasCoalStorage is null
         || AreasCoalStorage.Count == 0)
         {
-            ShowMessege(NOOBJECT_MESSEGE);
+            ShowNotificationMessege(NOOBJECT_MESSEGE);
             return;
         }
 
@@ -107,8 +107,7 @@ else
                 await AddToCargoHistoryAsync(item);
             }
         }
-
-        ShowMessege(message);
+        ShowNotificationMessege(message);
     }
 
 
@@ -138,22 +137,15 @@ else
             });
         string message = $"Операция изменения значения зруза на площадке {area.AreaName} на {area.CargoOnArea} добавлена в историю";
         dbContext.SaveChanges();
-        ShowMessege(message);
+        ShowNotificationMessege(message, severity: NotificationSeverity.Success);
     }
 
-
-
-
-    private void ChangeCargoOnArea(Area selectedArea, Area edditingArea)
+    private void ShowNotificationMessege(string massage, string header = "", NotificationSeverity severity = NotificationSeverity.Info)
     {
-
-    }
-
-    private void ShowMessege(string massage)
-    {
-        NotificationService.Notify(new NotificationMessage 
-            { Severity = NotificationSeverity.Info, 
-                Summary = "Button Clicked", 
+        NotificationService.Notify(new NotificationMessage
+            {
+                Severity = severity,
+                Summary = header,
                 Detail = massage
             });
     }

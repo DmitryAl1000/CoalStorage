@@ -1,0 +1,38 @@
+﻿@page "/StorageSlotsHistory"
+@rendermode InteractiveServer
+@inject CoalStorageMsSqlDbContext dbContext
+@inject NotificationService NotificationService
+
+
+
+<h3>Изменения расположения площадок и пикетов на складе</h3>
+
+@if (SlotsHistory is not null)
+{
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="20" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                    Data="@SlotsHistory" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single">
+        <Columns>
+            <RadzenDataGridColumn Property="@nameof(SlotHistory.DateTime)" Filterable="true" Title="Дата и время" Frozen="true" Width="200px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn Property="@nameof(SlotHistory.SlotName)" Filterable="true" Title="Номер пикета(слота)" Frozen="true" Width="200px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn Property="@nameof(SlotHistory.NewAreaName)" Title="Новое имя площадки" TextAlign="TextAlign.Center" Frozen="true" Width="200px" />
+        </Columns>
+    </RadzenDataGrid>
+}
+else
+{
+    <p>Загрузка...</p>
+}
+
+
+
+@code {
+
+    public List<SlotHistory>? SlotsHistory { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        SlotsHistory = dbContext.SlotsHistory.ToList();
+    }
+}

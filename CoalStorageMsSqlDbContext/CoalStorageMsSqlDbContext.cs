@@ -19,7 +19,7 @@ namespace MsSqlDbContext
 
         public DbSet<Slot> Slots { get; set; } = null!;
         public DbSet<Area> Areas { get; set; } = null!;
-        public DbSet<SlotHistory> AreasHistory { get; set; } = null!;
+        public DbSet<SlotHistory> SlotsHistory { get; set; } = null!;
         public DbSet<CargoHistory> CargoHistory { get; set; } = null!;
 
 
@@ -27,7 +27,6 @@ namespace MsSqlDbContext
         {
             //optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=BlackListDrovosekk;Trusted_Connection=True;");
         }
-
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -56,8 +55,8 @@ namespace MsSqlDbContext
             modelBuilder.Entity<SlotHistory>(b => b.HasKey(e => e.DateTime));
             //  modelBuilder.Entity<SlotHistory>().Property(u => u.DateTime).HasDefaultValueSql("DATETIME('now')");
             modelBuilder.Entity<SlotHistory>().Property(x => x.DateTime).IsRequired(true);
-            modelBuilder.Entity<SlotHistory>().Property(x => x.SlotId).IsRequired(true);
-            modelBuilder.Entity<SlotHistory>().Property(x => x.NewAreaId).IsRequired(true);
+            modelBuilder.Entity<SlotHistory>().Property(x => x.SlotName).IsRequired(true);
+            modelBuilder.Entity<SlotHistory>().Property(x => x.NewAreaName).IsRequired(true);
 
             //  //modelBuilder.Entity<SlotHistory>()
             //  //    .HasOne(u => u.Slot)
