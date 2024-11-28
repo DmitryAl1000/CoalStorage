@@ -12,6 +12,22 @@ namespace Application
 {
     public class SlotsRedactor
     {
+
+        readonly static string AREA_SEPARATOR;
+        public readonly static string AREA_DELETED_MESSAGE;
+
+        public List<SlotHistory> SlotChangeHistory { get; }
+
+        private List<Slot>? _slots;
+        private Slot _slotForExclude;
+        private List<Slot> _slotsOnArea;
+        private int _slotPositionInArea;
+
+        // при разбитии площадки мы получаем 1 или 2 новых площадки
+        private List<string> _newAreaNames;
+        // для нового имени площадки когда мы соединяем несколько пикетов
+        public string NewAreaName { get; private set; }
+
         static SlotsRedactor()
         {
             string settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
@@ -25,29 +41,13 @@ namespace Application
                 AREA_DELETED_MESSAGE = settings[nameof(AREA_DELETED_MESSAGE)];
             }
         }
-
-        readonly static string AREA_SEPARATOR;
-        public readonly static string AREA_DELETED_MESSAGE;
-
-        public List<SlotHistory> SlotChangeHistory { get; }
-
-        //Внутренние переменные
-        private List<Slot>? _slots;
-        private Slot _slotForExclude;
-        private List<Slot> _slotsOnArea;
-        private int _slotPositionInArea;
-
-        // при разбитии площадки мы получаем 1 или 2 новых площадки
-        private List<string> _newAreaNames;
-        // для нового имени площадки когда мы соединяем несколько пикетов
-        public string NewAreaName { get; set; }
-
         public SlotsRedactor(List<Slot> Slots)
         {
             SlotChangeHistory = new();
             _slotForExclude = new();
             _slotsOnArea = new();
             _newAreaNames = new();
+            NewAreaName = string.Empty;
 
             if (Slots is null)
                 _slots = new();
@@ -59,6 +59,8 @@ namespace Application
         //Получаем слeдующую и предыдующую площадки, чтобы показывать только их для перемещения
         public List<string> GetAreasForMoving(Slot selectedSlot)
         {
+            if (_slots is null) return new List<string>();
+
             List<string> areasForMoving = new();
             var selectedIndex = _slots.IndexOf(selectedSlot);
             int storageIndex = selectedSlot.StorageId;
@@ -96,6 +98,7 @@ namespace Application
             //Исключаем слот, если он уже был на другой площадке
             if (slotForMoving.SlotName != slotForMoving.AreaName)
                 ExcludeSlotFromArea(slotForMoving);
+                
 
             //Получаем слоты на площадке на которую будем перемещать наш слот
             _slotsOnArea = GetsSlotOnArea(resultArea);
@@ -116,6 +119,9 @@ namespace Application
 
             //Заменяем имена площадок на выбранных слотах и добавляем в историю
             ChangeAreasNamesInResultSlots();
+
+            //упрощаем историю. Если мы что-то создали и тут же удалили, нам в истории это не нужно
+            SimplifyHistory();
         }
 
         ///Исключить слот из Площадки
@@ -148,6 +154,30 @@ namespace Application
         //=============== Вспомогательные ===================
         //===================================================
 
+        // Если нам пришлось что-то создать и тут же удалить, это можно исключить из истории
+        private void SimplifyHistory()
+        {
+            List<SlotHistory> slotHistoryForDelete = new();
+
+            for (int i = 0; i < SlotChangeHistory.Count; i++)
+            {
+                //Проверяем не был ли удаленный слот ранее добавлен
+                if (SlotChangeHistory[i].SlotName == AREA_DELETED_MESSAGE)
+                {
+                    for (int k = i; k >= 0; k--)
+                    {
+                        if (SlotChangeHistory[i].NewAreaName == SlotChangeHistory[k].NewAreaName &&
+                            SlotChangeHistory[k].SlotName != AREA_DELETED_MESSAGE)
+                        {
+                            slotHistoryForDelete.Add(SlotChangeHistory[i]);
+                            slotHistoryForDelete.Add(SlotChangeHistory[k]);
+                        }
+                    }
+                }  
+            }
+            foreach (var item in slotHistoryForDelete)
+                SlotChangeHistory.Remove(item);
+        }
         private string GetNewAreaName(List<Slot> slotsOnArea)
         {
             slotsOnArea = slotsOnArea.OrderBy(p => p.SlotName).ToList();

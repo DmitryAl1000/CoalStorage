@@ -32,7 +32,6 @@ else
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-
-        CargoHistories = dbContext.CargoHistory.ToList();
+        await Task.Run(() => CargoHistories = dbContext.CargoHistory.ToList());
     }
 }

@@ -12,7 +12,5 @@ namespace Domain
         public string AreaName { get; set; } = string.Empty;
         public double CargoOnArea { get; set; } 
 
-
-     //   public Area Area { get; set; }
     }
 }

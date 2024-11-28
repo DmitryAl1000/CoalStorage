@@ -6,33 +6,46 @@
 <PageTitle>Home</PageTitle>
 
 
-
-
 <h2>Груз на площадках</h2>
 
 @if (_selectedArea is not null)
 {
-    @foreach (var item in _selectedArea)
+    @foreach (var area in _selectedArea)
     {
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Center" Wrap="FlexWrap.Wrap" Gap="1rem" class="rz-p-sm-12">
-            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Выбран: @item.AreaName</RadzenText>
-            <RadzenFormField Text="Новое значение для груза на площадке">
-                <RadzenNumeric @bind-Value="@_newAreaCargoCount" />
-            </RadzenFormField>
-            <RadzenButton Click=@(args => ChangeButtonClick()) Text="Изменить значение" ButtonStyle="ButtonStyle.Success" />
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="rz-p-4 rz-mb-6 rz-border-radius-1" Style="border: var(--rz-grid-cell-border);">
+            <RadzenRow class="rz-text-align-center" Gap="1rem">
+                <RadzenColumn class="rz-background-color-info-lighter rz-color-on-info-lighter rz-p-4">
+                    <RadzenText TextStyle="TextStyle.H2" TagName="TagName.H3">@area.AreaName</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Сейчас на площадке: @GetCargoOnArea(@area.AreaName) тонн груза</RadzenText>
+                </RadzenColumn>
+                <RadzenColumn>
+                    <RadzenRow class="rz-p-5">
+                        <RadzenFormField Text="Новое значение для груза">
+
+                            <RadzenTemplateForm TItem="Area" Data=@model>
+                                <RadzenNumeric Name="CargoOnArea" @bind-Value="@_newAreaCargoCount" Style="display: block; width: 100%;" />
+                                <RadzenNumericRangeValidator Component="CargoOnArea" Min=@MIN_CARGO Max=@MAX_CARGO Text=@VALIDATION_TEXT Popup=true Style="position: fixed" />
+                            </RadzenTemplateForm>
+                        </RadzenFormField>
+                    </RadzenRow>
+                    <RadzenRow class="rz-p-5">
+                        <RadzenButton Click=@(args => ChangeButtonClick()) Text="Изменить значение" ButtonStyle="ButtonStyle.Success" />
+                    </RadzenRow>
+                </RadzenColumn>
+            </RadzenRow>
         </RadzenStack>
     }
 }
 else
 {
-    <p>Загрузка</p>
+    <p>Загрузка...</p>
 }
 
 
-@if (AreasCoalStorage is not null)
+@if (Areas is not null)
 {
     <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="50" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-                    Data="@AreasCoalStorage" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value=@SelectedArea>
+                    Data="@Areas" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value=@SelectedArea>
         <Columns>
             <RadzenDataGridColumn Property="@nameof(Area.AreaName)" Filterable="true" Title="Номер площадки" Frozen="true" Width="200px" TextAlign="TextAlign.Center" />
 
@@ -47,12 +60,18 @@ else
 
 @code {
     const string NOOBJECT_MESSEGE = "Данные не были изменены, объект отсутствует";
-    const string CARGO_NOTCHANGED = "Груз не изменён";
+    const string CARGO_NOT_CHANGED = "Груз не изменён";
 
-    public List<Area>? AreasCoalStorage { get; set; }
+    const double MIN_CARGO = 0;
+    const double MAX_CARGO = 500000;
+    readonly string VALIDATION_TEXT = $"Значение от {MIN_CARGO} до {MAX_CARGO} тонн";
+
+    public List<Area>? Areas { get; set; }
+
+    public Area model = new();
 
     double _newAreaCargoCount;
-    IList<Area>? _selectedArea;
+
 
     //при изменениях выделенного поля меняем элемент в поле ввода
     private IList<Area>? SelectedArea
@@ -64,40 +83,62 @@ else
             SetInputCargoField();
         }
     }
-
-    private void SetInputCargoField()
-    {
-        double cargoOnArea = _selectedArea.FirstOrDefault().CargoOnArea;
-        _newAreaCargoCount = cargoOnArea;
-    }
-
-
+    IList<Area>? _selectedArea;
 
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
-        AreasCoalStorage = dbContext.Areas.OrderBy(p => p.AreaName).ToList();
-        _selectedArea = new List<Area>() { AreasCoalStorage?.FirstOrDefault() };
+        await Task.Run(() => Areas = dbContext.Areas.OrderBy(x => x.AreaName).ToList());
+        SetFirstSelectedArea();
         SetInputCargoField();
+    }
+
+    // Устанавливаем выделение первой ячейки
+    private void SetFirstSelectedArea()
+    {
+        if (Areas is not null && Areas.Count != 0)
+        {
+            var area = Areas.FirstOrDefault() ?? new Area();
+            _selectedArea = new List<Area>()
+            {
+                area
+            };
+        }
+    }
+
+    // Устанавливаем значение в поле ввода соответствующее первой ячейке при инициализации
+    private void SetInputCargoField()
+    {
+        if (_selectedArea is not null && _selectedArea.Count != 0)
+        {
+            double cargoOnArea = _selectedArea?.FirstOrDefault()?.CargoOnArea ?? 0;
+            _newAreaCargoCount = cargoOnArea;
+        }
     }
 
     private async Task ChangeButtonClick()
     {
 
         if (_selectedArea is null
-         || AreasCoalStorage is null
-        || AreasCoalStorage.Count == 0)
+         || Areas is null
+        || Areas.Count == 0)
         {
             ShowNotificationMessege(NOOBJECT_MESSEGE);
             return;
         }
 
-        string message = CARGO_NOTCHANGED;
-        Area? selectedArea = _selectedArea.FirstOrDefault();
+        if (_newAreaCargoCount < MIN_CARGO || _newAreaCargoCount > MAX_CARGO)
+        {
+            ShowNotificationMessege(CARGO_NOT_CHANGED);
+            return;
+        }
 
-        foreach (var item in AreasCoalStorage)
+        string message = CARGO_NOT_CHANGED;
+        Area? selectedArea = GetSingleSelectedArea();
+
+        foreach (var item in Areas)
         {
             if (selectedArea.AreaName == item.AreaName
               && _newAreaCargoCount != item.CargoOnArea)
@@ -110,10 +151,9 @@ else
         ShowNotificationMessege(message);
     }
 
-
     private async Task AddToCargoHistoryAfterAsync()
     {
-        Area? selectedArea = _selectedArea.FirstOrDefault();
+        Area? selectedArea = GetSingleSelectedArea();
         await Task.Run(() =>
          AddToCargoHistory(selectedArea)
         );
@@ -135,9 +175,7 @@ else
                 AreaName = area.AreaName,
                 CargoOnArea = area.CargoOnArea
             });
-        string message = $"Операция изменения значения зруза на площадке {area.AreaName} на {area.CargoOnArea} добавлена в историю";
         dbContext.SaveChanges();
-        ShowNotificationMessege(message, severity: NotificationSeverity.Success);
     }
 
     private void ShowNotificationMessege(string massage, string header = "", NotificationSeverity severity = NotificationSeverity.Info)
@@ -149,6 +187,33 @@ else
                 Detail = massage
             });
     }
+
+    //Сколько груза на площадкe
+    private double GetCargoOnArea(string areaName)
+    {
+        if (Areas is null) return -1;
+        foreach (var area in Areas)
+        {
+            if (area.AreaName == areaName)
+            {
+                return area.CargoOnArea;
+            }
+        }
+        return 0;
+    }
+
+
+    private Area GetSingleSelectedArea()
+    {
+        Area area = new();
+        if (_selectedArea is null || _selectedArea.Count == 0) 
+            return area;
+        else
+            return  _selectedArea.FirstOrDefault() ?? area;
+    }
+
+
+
 
 }
 

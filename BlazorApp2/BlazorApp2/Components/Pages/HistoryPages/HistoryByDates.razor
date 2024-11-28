@@ -1,0 +1,86 @@
+﻿@page "/HistoryByDates"
+@rendermode InteractiveServer
+@inject CoalStorageMsSqlDbContext dbContext
+@inject NotificationService NotificationService
+
+
+@* 
+=============================
+Схема управления таблицей
+============================= 
+*@
+
+<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" class="rz-p-12">
+    <RadzenLabel Text="Выберите дату:" Component="DatePickerWithTime" />
+    <RadzenDatePicker @bind-Value=@dateTime @onchange=@ChangeTable ShowTime="true" ShowSeconds="true" HoursStep="1" MinutesStep="1" SecondsStep="10" DateFormat="MM/dd/yyyy HH:mm" Name="DatePickerWithTime" />
+</RadzenStack>
+
+
+@*
+===============================================
+Таблица. История площадок и пикетов по дате
+===============================================
+*@
+@if (Areas is not null)
+{
+    <RadzenText TextStyle="TextStyle.H3" TagName="TagName.H3" TextAlign="TextAlign.Center">Состояние площадок на: @dateTime </RadzenText>
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="20" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                    Data="@Areas" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single">
+        <Columns>
+            <RadzenDataGridColumn Property="@nameof(Area.AreaName)" Filterable="true" Title="Номер площадки" Frozen="true" Width="200px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn Property="@nameof(Area.CargoOnArea)" Title="Значение груза на площадке(т)" TextAlign="TextAlign.Center" Frozen="true" Width="200px" />
+        </Columns>
+    </RadzenDataGrid>
+}
+else
+{
+    <p>Загрузка...</p>
+}
+
+
+
+
+
+@code {
+
+    public List<Area>? Areas { get; set; }
+    public List<Slot>? Slots { get; set; }
+    public List<CargoHistory>? CargoHistorys { get; set; }
+    public List<SlotHistory>? SlotHistorys { get; set; }
+
+
+    DateTime? _dateTime = DateTime.Now;
+
+    public DateTime? dateTime
+    {
+        get { return _dateTime; }
+        set {
+            if (value > DateTime.Now)
+                _dateTime = DateTime.Now;
+            else
+                _dateTime = value;
+            ChangeTable();
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await Task.Run(() => Slots = dbContext.Slots.ToList());
+        await Task.Run(() => Areas = dbContext.Areas.ToList());
+        await Task.Run(() => SlotHistorys = dbContext.SlotsHistory.ToList());
+        await Task.Run(() => CargoHistorys = dbContext.CargoHistory.ToList());
+    }
+
+
+    private void ChangeTable()
+    {
+        if (CargoHistorys is null) return;
+        var areaNames = SlotHistoryLogic.FindAllAreasNamesByDate(Slots, SlotHistorys, dateTime);
+        Areas = CargoHistoryLogic.FindAllCargoByDate(areaNames, CargoHistorys, dateTime);
+    }
+}
+
+
+

@@ -27,7 +27,7 @@ namespace Application
 
 
 
-        public AreaLogic(List<Area>? areas)
+        public AreaLogic(List<Area> areas)
         {
             this._areas = areas;
         }

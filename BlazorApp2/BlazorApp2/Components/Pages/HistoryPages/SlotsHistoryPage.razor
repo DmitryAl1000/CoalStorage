@@ -32,7 +32,6 @@ else
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-
-        SlotsHistory = dbContext.SlotsHistory.ToList();
+        await Task.Run(() => SlotsHistory = dbContext.SlotsHistory.ToList());
     }
 }

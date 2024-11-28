@@ -12,8 +12,5 @@ namespace Domain
         public string SlotName { get; set; } = string.Empty;
         public string AreaName { get; set; } = string.Empty;
         public int StorageId { get; set; }
-
-        //public Area? Area { get; set; }
-        //public List<SlotHistory> SlotHistory { get; set; } = new();
     }
 }
